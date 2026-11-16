@@ -25,6 +25,12 @@ cp "$BIN_DIR/NudgeAgent" "$APP/Contents/MacOS/NudgeAgent"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 
 echo "Signing with identity: ${SIGN_IDENTITY:--} (ad-hoc if '-')"
-codesign --force --sign "${SIGN_IDENTITY:--}" "$APP"
+if [[ "${SIGN_IDENTITY:--}" == "-" ]]; then
+  codesign --force --sign - --entitlements Resources/NudgeAgent.entitlements "$APP"
+else
+  # Same hardened runtime and entitlements as release builds, so local runs behave the same.
+  codesign --force --options runtime --timestamp=none \
+    --entitlements Resources/NudgeAgent.entitlements --sign "$SIGN_IDENTITY" "$APP"
+fi
 
 echo "Done: $ROOT/$APP"
