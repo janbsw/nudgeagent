@@ -84,6 +84,29 @@ final class UIFirstMouseHostingView: NSHostingView<AnyView> {
 
 // MARK: - Regular windows
 
+/// Shows NudgeAgent in the Dock and Cmd+Tab while one of its regular windows is open,
+/// and hides it again (menu bar only) when the last one closes. Nudge panels don't count.
+enum UIDockPresence {
+    private static var open = Set<ObjectIdentifier>()
+
+    static func windowOpened(_ controller: NSWindowController) {
+        open.insert(ObjectIdentifier(controller))
+        if NSApp.activationPolicy() != .regular {
+            NSApp.setActivationPolicy(.regular)
+        }
+    }
+
+    static func windowClosed(_ controller: NSWindowController) {
+        open.remove(ObjectIdentifier(controller))
+        guard open.isEmpty else { return }
+        // Wait for the close to finish, then drop back to menu bar only.
+        DispatchQueue.main.async {
+            guard open.isEmpty, NSApp.activationPolicy() != .accessory else { return }
+            NSApp.setActivationPolicy(.accessory)
+        }
+    }
+}
+
 /// A titled window hosting SwiftUI content. Kept alive and reused by AppUI.
 final class UIHostedWindowController: NSWindowController, NSWindowDelegate {
     var onClose: (() -> Void)?
@@ -113,6 +136,7 @@ final class UIHostedWindowController: NSWindowController, NSWindowDelegate {
 
     /// Show and bring to front. Menu bar apps must activate explicitly.
     func present() {
+        UIDockPresence.windowOpened(self)
         showWindow(nil)
         // A menu bar app is never the active app, so the plain cooperative activate()
         // can leave the window behind others. Force it to the front.
@@ -122,6 +146,7 @@ final class UIHostedWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        UIDockPresence.windowClosed(self)
         onClose?()
     }
 }

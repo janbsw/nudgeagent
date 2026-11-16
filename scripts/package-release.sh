@@ -42,6 +42,7 @@ lipo -create \
   .build/x86_64-apple-macosx/release/NudgeAgent \
   -output "$APP/Contents/MacOS/NudgeAgent"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 if [[ "$IDENTITY" == "-" ]]; then
   echo "Signing ad-hoc (not trusted on other Macs)"

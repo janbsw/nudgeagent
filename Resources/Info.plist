@@ -6,6 +6,8 @@
 	<string>NudgeAgent</string>
 	<key>CFBundleExecutable</key>
 	<string>NudgeAgent</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>app.nudgeagent.NudgeAgent</string>
 	<key>CFBundleInfoDictionaryVersion</key>
