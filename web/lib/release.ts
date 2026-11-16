@@ -4,7 +4,7 @@ const REPO = "janbsw/nudgeagent";
 export const RELEASES_PAGE = `https://github.com/${REPO}/releases`;
 
 export type Download = {
-  /** Direct link to the installer, or the releases page if none was found. */
+  /** Page of the newest release (download and install steps), or the releases list as fallback. */
   href: string;
   /** Version without the leading "v", for example "0.1.1". Null when unknown. */
   version: string | null;
@@ -14,12 +14,11 @@ type GitHubRelease = {
   tag_name: string;
   draft: boolean;
   html_url: string;
-  assets: { name: string; browser_download_url: string }[];
 };
 
 /**
  * Newest published release, pre-releases included (GitHub's "latest" skips those).
- * Prefers the .dmg, then a .zip. Falls back to the releases page on any failure.
+ * Links its release page, which carries the install steps. Falls back to the releases list.
  */
 export async function getLatestDownload(): Promise<Download> {
   "use cache";
@@ -35,11 +34,8 @@ export async function getLatestDownload(): Promise<Download> {
     const release = releases.find((r) => !r.draft);
     if (!release) return { href: RELEASES_PAGE, version: null };
 
-    const asset =
-      release.assets.find((a) => a.name.endsWith(".dmg")) ?? release.assets.find((a) => a.name.endsWith(".zip"));
-
     return {
-      href: asset?.browser_download_url ?? release.html_url,
+      href: release.html_url,
       version: release.tag_name.replace(/^v/, ""),
     };
   } catch {
