@@ -3,6 +3,7 @@ import { HeroTrip } from "@/components/HeroTrip";
 import { StateTabs } from "@/components/StateTabs";
 import { ProfileTabs } from "@/components/ProfileTabs";
 import { Arrow, Logo } from "@/components/Logo";
+import { getLatestDownload } from "@/lib/release";
 
 const LADDER = [
   { title: "The icon changes color", text: "A quiet signal in your menu bar. Many people notice it and come back on their own." },
@@ -37,7 +38,7 @@ const FAQ = [
   },
   {
     q: "What does it cost?",
-    a: "Right now it is a team build and you bring your own Anthropic API key, stored in your Keychain. A typical day uses around 50 to 100 small text checks.",
+    a: "Right now it is an early build and you bring your own Anthropic API key, stored in your Keychain. A typical day uses around 50 to 100 small text checks.",
   },
   {
     q: "What happens during meetings and breaks?",
@@ -45,11 +46,13 @@ const FAQ = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const download = await getLatestDownload();
+
   return (
     <>
       <a href="#main" className="skip">Skip to content</a>
-      <Nav />
+      <Nav downloadHref={download.href} />
 
       <main id="main">
         {/* Hero */}
@@ -67,7 +70,7 @@ export default function Home() {
                 and offers a friendly way back. No judgement, ever.
               </p>
               <div className="hero-ctas">
-                <a href="#download" className="btn btn-light">Download for Mac</a>
+                <a href={download.href} className="btn btn-light">Download for Mac</a>
                 <a href="#states" className="btn btn-ink">See how it works</a>
               </div>
             </div>
@@ -238,9 +241,11 @@ export default function Home() {
           <div className="container">
             <div className="cta">
               <h2 id="cta-title" className="cta-title">Pick one thing. We&rsquo;ll keep you near it.</h2>
-              <p>Free while we test it as a team. macOS 14 or later.</p>
+              <p>
+                {download.version ? `Version ${download.version}. ` : ""}Free while it is in early testing. macOS 14 or later.
+              </p>
               <div className="hero-ctas">
-                <a href="#download" className="btn btn-light">Download for Mac</a>
+                <a href={download.href} className="btn btn-light">Download for Mac</a>
                 <a href="#faq" className="btn btn-ghost">
                   Read the FAQ <Arrow />
                 </a>

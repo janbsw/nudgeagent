@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Logo } from "./Logo";
 
-export function Nav() {
+export function Nav({ downloadHref }: { downloadHref: string }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export function Nav() {
           <li><a href="#privacy">Privacy</a></li>
           <li><a href="#faq">FAQ</a></li>
         </ul>
-        <a href="#download" className="btn btn-ink btn-sm">Download for Mac</a>
+        <a href={downloadHref} className="btn btn-ink btn-sm">Download for Mac</a>
       </nav>
     </header>
   );
