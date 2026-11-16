@@ -216,11 +216,25 @@ final class SessionCoordinator: SessionControlling {
     }
 
     private func log(_ c: Classification, ctx: WindowContext) {
-        let entry = LogEntry(at: c.at, appName: ctx.appName, title: ctx.cleanTitle, url: ctx.url,
+        // Private windows are never written with their title or URL, and stored URLs keep
+        // only scheme, host and path (no query string or fragment, which can hold tokens).
+        let entry = LogEntry(at: c.at, appName: ctx.appName,
+                             title: ctx.isPrivateWindow ? "(private window)" : ctx.cleanTitle,
+                             url: ctx.isPrivateWindow ? nil : ctx.url.flatMap(Self.redactedURL),
                              label: c.label, source: c.source, reason: c.reason, status: state.status)
         state.log.append(entry)
         if state.log.count > Self.logCap { state.log.removeFirst(state.log.count - Self.logCap) }
-        if persistenceEnabled { LocalStore.appendLine(entry, to: "session-log.jsonl") }
+        if persistenceEnabled { LocalStore.appendLine(entry, to: "session-log.jsonl", maxBytes: 5_000_000) }
+    }
+
+    /// scheme://host/path, dropping user info, query and fragment.
+    static func redactedURL(_ raw: String) -> String? {
+        guard var comps = URLComponents(string: raw), comps.host != nil else { return nil }
+        comps.user = nil
+        comps.password = nil
+        comps.query = nil
+        comps.fragment = nil
+        return comps.string
     }
 
     private func mirrorCounters() {

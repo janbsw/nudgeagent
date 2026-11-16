@@ -92,13 +92,21 @@ enum LocalStore {
         try? data.write(to: directory.appendingPathComponent(file), options: .atomic)
     }
 
-    /// Append one JSON line (session log).
-    static func appendLine<T: Encodable>(_ value: T, to file: String) {
+    /// Append one JSON line (session log). When `maxBytes` is set and the file is larger,
+    /// it is rotated to "<file>.1" (replacing an older rotation) before appending.
+    static func appendLine<T: Encodable>(_ value: T, to file: String, maxBytes: Int? = nil) {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         guard var data = try? encoder.encode(value) else { return }
         data.append(0x0A)
         let url = directory.appendingPathComponent(file)
+        if let maxBytes,
+           let size = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int,
+           size > maxBytes {
+            let rotated = directory.appendingPathComponent(file + ".1")
+            try? FileManager.default.removeItem(at: rotated)
+            try? FileManager.default.moveItem(at: url, to: rotated)
+        }
         if let handle = try? FileHandle(forWritingTo: url) {
             handle.seekToEndOfFile()
             handle.write(data)
