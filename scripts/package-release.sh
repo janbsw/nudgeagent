@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Builds a universal (Apple Silicon + Intel) NudgeAgent.app and zips it for a GitHub release.
+# Builds a universal (Apple Silicon + Intel) NudgeAgent.app and packs it into a DMG
+# (drag-to-Applications window) for a GitHub release.
 #
 # Unsigned test build (ad-hoc, users must click "Open Anyway"):
 #   scripts/package-release.sh
@@ -16,7 +17,7 @@
 #          --key ~/Downloads/AuthKey_XXXXXXXXXX.p8 --key-id XXXXXXXXXX --issuer <issuer-uuid>
 #      After that you can delete the .p8 file. Nothing secret is stored in this repo.
 #
-# Output: build/NudgeAgent-<version>.zip
+# Output: build/NudgeAgent-<version>.dmg
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -24,7 +25,7 @@ cd "$ROOT"
 
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Resources/Info.plist)"
 APP="build/NudgeAgent.app"
-ZIP="build/NudgeAgent-${VERSION}.zip"
+DMG="build/NudgeAgent-${VERSION}.dmg"
 IDENTITY="${SIGN_IDENTITY:--}"
 ENTITLEMENTS="Resources/NudgeAgent.entitlements"
 
@@ -34,7 +35,7 @@ echo "Building x86_64..."
 swift build -c release --triple x86_64-apple-macosx14.0
 
 echo "Assembling universal $APP..."
-rm -rf "$APP" "$ZIP"
+rm -rf "$APP" "$DMG"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 lipo -create \
   .build/arm64-apple-macosx/release/NudgeAgent \
@@ -52,24 +53,34 @@ else
 fi
 codesign --verify --strict --verbose=1 "$APP"
 
+echo "Creating DMG..."
+STAGE="build/dmg-stage"
+rm -rf "$STAGE"
+mkdir -p "$STAGE"
+cp -R "$APP" "$STAGE/"
+ln -s /Applications "$STAGE/Applications"
+hdiutil create -quiet -volname "NudgeAgent ${VERSION}" -srcfolder "$STAGE" \
+  -fs HFS+ -format UDZO -imagekey zlib-level=9 -ov "$DMG"
+rm -rf "$STAGE"
+
+if [[ "$IDENTITY" != "-" ]]; then
+  echo "Signing the DMG..."
+  codesign --force --timestamp --sign "$IDENTITY" "$DMG"
+fi
+
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
   if [[ "$IDENTITY" != Developer\ ID\ Application* ]]; then
     echo "Notarization needs SIGN_IDENTITY to be a \"Developer ID Application\" certificate." >&2
     exit 1
   fi
-  echo "Submitting to Apple for notarization (usually a few minutes)..."
-  SUBMIT_ZIP="build/NudgeAgent-notarize.zip"
-  ditto -c -k --keepParent "$APP" "$SUBMIT_ZIP"
-  xcrun notarytool submit "$SUBMIT_ZIP" --keychain-profile "$NOTARY_PROFILE" --wait
-  rm -f "$SUBMIT_ZIP"
-  echo "Stapling the notarization ticket to the app..."
-  xcrun stapler staple "$APP"
-  spctl --assess --type execute --verbose=2 "$APP"
+  echo "Submitting the DMG to Apple for notarization (usually a few minutes)..."
+  xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
+  echo "Stapling the notarization ticket to the DMG..."
+  xcrun stapler staple "$DMG"
+  spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
 else
   echo "NOTARY_PROFILE not set: skipping notarization (macOS will warn on first launch)."
 fi
 
-echo "Zipping..."
-ditto -c -k --keepParent "$APP" "$ZIP"
 lipo -archs "$APP/Contents/MacOS/NudgeAgent"
-echo "Done: $ROOT/$ZIP"
+echo "Done: $ROOT/$DMG"

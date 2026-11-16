@@ -6,8 +6,8 @@ A macOS menu bar app for people with ADHD. Set a goal, and it notices when you d
 
 ## Install (download)
 
-1. Download `NudgeAgent-<version>.zip` from the [latest release](../../releases/latest) and unzip it.
-2. Move `NudgeAgent.app` to `/Applications`.
+1. Download `NudgeAgent-<version>.dmg` from the [latest release](../../releases/latest) and open it.
+2. Drag `NudgeAgent` onto the `Applications` folder in the window that appears, then eject the disk.
 3. The app is not notarized by Apple yet, so macOS blocks the first launch. Either:
    - Double-click it, close the warning, then go to **System Settings > Privacy & Security**, scroll down and click **Open Anyway**; or
    - run `xattr -dr com.apple.quarantine /Applications/NudgeAgent.app` in Terminal, then open it.
