@@ -25,6 +25,10 @@ cp "$BIN_DIR/NudgeAgent" "$APP/Contents/MacOS/NudgeAgent"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
+# Prefer a stable certificate so macOS keeps permissions across rebuilds.
+if [[ -z "${SIGN_IDENTITY:-}" ]] && security find-identity -v -p codesigning | grep -q "Apple Development"; then
+  SIGN_IDENTITY="Apple Development"
+fi
 echo "Signing with identity: ${SIGN_IDENTITY:--} (ad-hoc if '-')"
 if [[ "${SIGN_IDENTITY:--}" == "-" ]]; then
   codesign --force --sign - --entitlements Resources/NudgeAgent.entitlements "$APP"
